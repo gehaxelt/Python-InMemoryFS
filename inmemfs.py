@@ -34,9 +34,9 @@ class InMemoryFS(Operations):
                 'st_ctime': time.time(),
                 'st_mode': 0o00040777,
                 'st_nlink': 1,
-                'st_size': 123,
-                'st_gid': 1000,
-                'st_uid': 1000,
+                'st_size': 0,
+                'st_gid': os.getuid(),
+                'st_uid': os.getgid(),
                 }
         }
 
@@ -60,22 +60,6 @@ class InMemoryFS(Operations):
     # ==================
 
     def access(self, path, mode):
-        # full_path = self._full_path(path)
-        # the_dir = self._the_dir(full_path)
-        # the_file = self._the_file(full_path)
-
-        # print("[*] access: ", full_path, the_dir, the_file)
-
-        # if not the_dir in self.fs.keys():
-        #     raise FuseOSError(errno.EACCESS)
-
-        # print("foo")
-
-        # if the_file != '' and not the_file in self.fs[the_dir].keys():
-        #     raise FuseOSError(errno.ENOENT)
-
-        # print("ret")
-        # 
         pass
 
     def chmod(self, path, mode):
@@ -91,19 +75,10 @@ class InMemoryFS(Operations):
         the_dir = self._the_dir(full_path)
         the_file = self._the_file(full_path)
         print("[*] getattr: ", full_path)
+
         if not full_path in self.meta.keys():
             raise FuseOSError(errno.ENOENT)
-            # return {
-            #     'st_atime': 0,
-            #     'st_mtime': 0,
-            #     'st_ctime': 0,
-            #     'st_mode': 0o0047000,
-            #     'st_nlink': 1,
-            #     'st_size': 0,
-            #     'st_gid': 1000,
-            #     'st_uid': 1000,
-            #     }
-            #     
+
         if the_dir in self.fs and the_file in self.fs[the_dir]:
             self.meta[full_path]['st_size'] = len(self.fs[the_dir][the_file])
         return self.meta[full_path]
@@ -160,8 +135,8 @@ class InMemoryFS(Operations):
                 'st_mode': 0o0040777,
                 'st_nlink': 0,
                 'st_size': 0,
-                'st_gid': 1000,
-                'st_uid': 1000,
+                'st_gid': os.getuid(),
+                'st_uid': os.getgid(),
                 }
 
         print(self.fs, self.meta)
@@ -211,20 +186,15 @@ class InMemoryFS(Operations):
         if not the_dir_old in self.fs.keys():
             raise FuseOSError(errno.ENOENT)
 
-        print("foo")
-
         if not the_dir_new in self.fs.keys():
             raise FuseOSError(errno.ENOENT)
 
-        print("foo")
         if not the_file_old in self.fs[the_dir_old].keys():
             raise FuseOSError(errno.ENOENT)
 
-        print("foo")
         if the_file_new in self.fs[the_dir_new].keys():
             raise FuseOSError(errno.EEXIST)
 
-        print("foo")
         self.fs[the_dir_new][the_file_new] = copy.deepcopy(self.fs[the_dir_old][the_file_old])
         del self.fs[the_dir_old][the_file_old]
         del self.fs[the_dir_old]
@@ -244,8 +214,16 @@ class InMemoryFS(Operations):
 
         print("[*] utimens: ", full_path)
         if not full_path in self.meta.keys():
-            raise FuseOSError(38)
-        return self.meta[full_path]['utimens']
+            raise FuseOSError(errno.ENOENT)
+
+        if times:
+            self.meta[full_path]['st_atime'] = times[0]
+            self.meta[full_path]['st_mtime'] = times[1]
+        else:
+            self.meta[full_path]['st_atime'] = time.time()
+            self.meta[full_path]['st_mtime'] = time.time()
+
+        return 0
 
     # File methods
     # ============
@@ -283,8 +261,8 @@ class InMemoryFS(Operations):
                 'st_mode': 0o0100777,
                 'st_nlink': 0,
                 'st_size': 0,
-                'st_gid': 1000,
-                'st_uid': 1000,
+                'st_gid': os.getuid(),
+                'st_uid': os.getgid(),
                 }
         print(self.fs)
         return 1337 # we don't use file handles, so any random number should suffice, I guess?
