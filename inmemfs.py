@@ -88,6 +88,8 @@ class InMemoryFS(Operations):
 
     def getattr(self, path, fh=None):
         full_path = self._full_path(path)
+        the_dir = self._the_dir(full_path)
+        the_file = self._the_file(full_path)
         print("[*] getattr: ", full_path)
         if not full_path in self.meta.keys():
             raise FuseOSError(errno.ENOENT)
@@ -101,6 +103,9 @@ class InMemoryFS(Operations):
             #     'st_gid': 1000,
             #     'st_uid': 1000,
             #     }
+            #     
+        if the_dir in self.fs and the_file in self.fs[the_dir]:
+            self.meta[full_path]['st_size'] = len(self.fs[the_dir][the_file])
         return self.meta[full_path]
 
     def readdir(self, path, fh):
@@ -124,7 +129,7 @@ class InMemoryFS(Operations):
 
     def mknod(self, path, mode, dev):
         print("[*] mknod")
-        raise FuseOSError(38)
+        pass
 
     def rmdir(self, path):
         full_path = self._full_path(path)
@@ -201,28 +206,34 @@ class InMemoryFS(Operations):
 
 
         print("[*] rename: ", full_path_old, the_dir_old, the_file_old)
+        print("[*] rename: ", full_path_new, the_dir_new, the_file_new)
 
         if not the_dir_old in self.fs.keys():
-            raise FuseOSError(38)
+            raise FuseOSError(errno.ENOENT)
+
+        print("foo")
 
         if not the_dir_new in self.fs.keys():
-            raise FuseOSError(38)
+            raise FuseOSError(errno.ENOENT)
 
-        if the_file_old == '':
-            # it's a dir
-            self.fs[the_dir_new] = copy.deepcopy(self.fs[the_dir_old])
-        else:
-            # it's a file
-            if not the_file_old in self.fs[the_dir_old].keys():
-                raise FuseOSError(38)
+        print("foo")
+        if not the_file_old in self.fs[the_dir_old].keys():
+            raise FuseOSError(errno.ENOENT)
 
-            self.fs[the_dir_new][the_file_new] = copy.deepcopy(self.fs[the_dir_old][the_file_old])
-            del self.fs[the_dir_old][the_file_old]
-            del self.fs[the_dir_old]
+        print("foo")
+        if the_file_new in self.fs[the_dir_new].keys():
+            raise FuseOSError(errno.EEXIST)
 
+        print("foo")
+        self.fs[the_dir_new][the_file_new] = copy.deepcopy(self.fs[the_dir_old][the_file_old])
+        del self.fs[the_dir_old][the_file_old]
+        del self.fs[the_dir_old]
+
+        self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
         del self.meta[full_path_old]
-        self.meta[full_path_new] = {}
 
+        print(self.fs)
+        print(self.meta)
 
     def link(self, target, name):
         print("[*] link")
@@ -250,20 +261,33 @@ class InMemoryFS(Operations):
         if not the_file in self.fs[the_dir].keys():
             raise FuseOSError(38)
 
-        return self.fs[the_dir][the_file]
+        return 1337
 
     def create(self, path, mode, fi=None):
         full_path = self._full_path(path)
         the_dir = self._the_dir(full_path)
         the_file = self._the_file(full_path)
 
-        print("[*] creates: ", full_path, the_dir, the_file)
+        print("[*] create: ", full_path, the_dir, the_file)
         if not the_dir in self.fs.keys():
             raise FuseOSError(38)
-        if not the_file in self.fs[the_dir].keys():
-            raise FuseOSError(38)
 
-        self.fs[the_dir][the_file] = io.BytesIO()
+        if the_file in self.fs[the_dir].keys():
+            raise FuseOSError(errno.EEXIST)
+
+        self.fs[the_dir][the_file] = []
+        self.meta[full_path] = {
+                'st_atime': time.time(),
+                'st_mtime': time.time(),
+                'st_ctime': time.time(),
+                'st_mode': 0o0100777,
+                'st_nlink': 0,
+                'st_size': 0,
+                'st_gid': 1000,
+                'st_uid': 1000,
+                }
+        print(self.fs)
+        return 1337 # we don't use file handles, so any random number should suffice, I guess?
 
 
     def read(self, path, length, offset, fh):
@@ -274,11 +298,12 @@ class InMemoryFS(Operations):
         print("[*] read: ", full_path, the_dir, the_file)
         if not the_dir in self.fs.keys():
             raise FuseOSError(38)
+
         if not the_file in self.fs[the_dir].keys():
             raise FuseOSError(38)
 
-        self.fs[the_dir][the_file].seek(offset)
-        return self.fs[the_dir][the_file].read1(length)
+        return bytes(self.fs[the_dir][the_file][offset:length])
+
 
     def write(self, path, buf, offset, fh):
         full_path = self._full_path(path)
@@ -291,8 +316,9 @@ class InMemoryFS(Operations):
         if not the_file in self.fs[the_dir].keys():
             raise FuseOSError(38)
 
-        self.fs[the_dir][the_file].seek(offset)
-        return self.fs[the_dir][the_file].write(buf)
+        self.fs[the_dir][the_file][offset:] += bytes(buf)
+        print(self.fs)
+        return len(buf)
 
     def truncate(self, path, length, fh=None):
         full_path = self._full_path(path)
@@ -305,7 +331,7 @@ class InMemoryFS(Operations):
         if not the_file in self.fs[the_dir].keys():
             raise FuseOSError(38)
 
-        self.fs[the_dir][the_file].truncate()
+        self.fs[the_dir][the_file] = []
 
     def flush(self, path, fh):
         print("[*] flush")
@@ -322,7 +348,7 @@ class InMemoryFS(Operations):
         if not the_file in self.fs[the_dir].keys():
             raise FuseOSError(38)
 
-        self.fs[the_dir][the_file].close()
+        pass
 
     def fsync(self, path, fdatasync, fh):
         print("[*] fsync")
