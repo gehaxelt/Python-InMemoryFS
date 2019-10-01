@@ -33,7 +33,7 @@ class InMemoryFS(Operations):
                 'st_mtime': time.time(),
                 'st_ctime': time.time(),
                 'st_mode': 0o00040777,
-                'st_nlink': 1,
+                'st_nlink': 0,
                 'st_size': 0,
                 'st_gid': os.getuid(),
                 'st_uid': os.getgid(),
