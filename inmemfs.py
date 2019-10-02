@@ -32,7 +32,7 @@ class InMemoryFS(Operations):
                 'st_atime': time.time(),
                 'st_mtime': time.time(),
                 'st_ctime': time.time(),
-                'st_mode': 0o00040777,
+                'st_mode': 0o00040770,
                 'st_nlink': 0,
                 'st_size': 0,
                 'st_gid': os.getuid(),
@@ -67,12 +67,25 @@ class InMemoryFS(Operations):
         pass
 
     def chmod(self, path, mode):
-        print("[*] chmod: ", path)
-        raise FuseOSError(38)
+        full_path = self._full_path(path)
+        print("[*] chmod: ", path, mode)
+
+        if not full_path in self.meta.keys():
+            raise FuseOSError(errno.ENOENT)
+
+        self.meta[full_path]['st_mode'] = mode
 
     def chown(self, path, uid, gid):
-        print("[*] chown: ", path)
-        raise FuseOSError(38)
+        # TODO: This is insecure! Anyone can change the owner/group
+        full_path = self._full_path(path)
+        print("[*] chown: ", path, uid, gid)
+
+        if not full_path in self.meta.keys():
+            raise FuseOSError(errno.ENOENT)
+
+        self.meta[full_path]['st_uid'] = uid
+        self.meta[full_path]['st_gid'] = gid
+
 
     def getattr(self, path, fh=None):
         full_path = self._full_path(path)
@@ -142,7 +155,7 @@ class InMemoryFS(Operations):
                 'st_atime': time.time(),
                 'st_mtime': time.time(),
                 'st_ctime': time.time(),
-                'st_mode': 0o0040777,
+                'st_mode': 0o0040770,
                 'st_nlink': 0,
                 'st_size': 0,
                 'st_gid': os.getuid(),
@@ -276,7 +289,7 @@ class InMemoryFS(Operations):
                 'st_atime': time.time(),
                 'st_mtime': time.time(),
                 'st_ctime': time.time(),
-                'st_mode': 0o0100777,
+                'st_mode': 0o0100770,
                 'st_nlink': 0,
                 'st_size': 0,
                 'st_gid': os.getuid(),
