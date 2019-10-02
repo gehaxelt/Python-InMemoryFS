@@ -200,9 +200,9 @@ class InMemoryFS(Operations):
         if the_file_new in self.fs[the_dir_new].keys():
             raise FuseOSError(errno.EEXIST)
 
+
         self.fs[the_dir_new][the_file_new] = copy.deepcopy(self.fs[the_dir_old][the_file_old])
         del self.fs[the_dir_old][the_file_old]
-        del self.fs[the_dir_old]
 
         self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
         del self.meta[full_path_old]
