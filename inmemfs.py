@@ -117,7 +117,7 @@ class InMemoryFS(Operations):
             dirents.extend([f for f in self.fs[full_path]])
 
         dirents.extend(list(map(lambda y: y.lstrip(full_path), filter(lambda x: x.startswith(the_dir) and "/" not in x.lstrip(full_path) and x.lstrip(full_path) != '', self.fs.keys()))))
-        print(dirents)
+
         for r in dirents:
             yield r
 
