@@ -27,4 +27,7 @@ WORKS (tm):
 - touch
 - mkdir
 - rmdir
+- mv 
+- chown 
+- chmod
 - read/write files
