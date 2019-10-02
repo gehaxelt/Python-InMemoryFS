@@ -176,11 +176,19 @@ class InMemoryFS(Operations):
 
     def statfs(self, path):
         print("[*] statfs")
-        # full_path = self._full_path(path)
-        # stv = os.statvfs(full_path)
-        # return dict((key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
-        #     'f_blocks', 'f_bsize', 'f_favail', 'f_ffree', 'f_files', 'f_flag',
-        #     'f_frsize', 'f_namemax'))
+        # Some numbers are chosen arbitrarily
+        return {
+            'f_bavail': 0,
+            'f_bfree': 0,
+            'f_blocks': len(self.meta),
+            'f_bsize': 0,
+            'f_favail': 0,
+            'f_ffree': 0,
+            'f_files': len(self.meta),
+            'f_flag': 0,
+            'f_frsize': 0,
+            'f_namemax': 2**32
+        }
         raise FuseOSError(38)
 
     def unlink(self, path):
