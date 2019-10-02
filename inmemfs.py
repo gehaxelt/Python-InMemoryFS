@@ -32,7 +32,7 @@ class InMemoryFS(Operations):
                 'st_atime': time.time(),
                 'st_mtime': time.time(),
                 'st_ctime': time.time(),
-                'st_mode': 0o00040777,
+                'st_mode': 0o00040770,
                 'st_nlink': 0,
                 'st_size': 0,
                 'st_gid': os.getuid(),
@@ -56,7 +56,7 @@ class InMemoryFS(Operations):
     def _the_file(self, f_path):
         return f_path.split("/")[-1]
 
-    def _debug():
+    def _debug(self):
         print(self.fs)
         print(self.meta)
 
@@ -67,12 +67,25 @@ class InMemoryFS(Operations):
         pass
 
     def chmod(self, path, mode):
-        print("[*] chmod: ", path)
-        raise FuseOSError(38)
+        full_path = self._full_path(path)
+        print("[*] chmod: ", path, mode)
+
+        if not full_path in self.meta.keys():
+            raise FuseOSError(errno.ENOENT)
+
+        self.meta[full_path]['st_mode'] = mode
 
     def chown(self, path, uid, gid):
-        print("[*] chown: ", path)
-        raise FuseOSError(38)
+        # TODO: This is insecure! Anyone can change the owner/group
+        full_path = self._full_path(path)
+        print("[*] chown: ", path, uid, gid)
+
+        if not full_path in self.meta.keys():
+            raise FuseOSError(errno.ENOENT)
+
+        self.meta[full_path]['st_uid'] = uid
+        self.meta[full_path]['st_gid'] = gid
+
 
     def getattr(self, path, fh=None):
         full_path = self._full_path(path)
@@ -84,7 +97,13 @@ class InMemoryFS(Operations):
             raise FuseOSError(errno.ENOENT)
 
         if the_dir in self.fs and the_file in self.fs[the_dir]:
+            # it's a file, update it's size
             self.meta[full_path]['st_size'] = len(self.fs[the_dir][the_file])
+
+        if full_path in self.fs.keys():
+            # it's a directory, update it's size
+            self.meta[full_path]['st_size'] = sum([len(self.fs[full_path][k]) for k in self.fs[full_path].keys()])
+
         return self.meta[full_path]
 
     def readdir(self, path, fh):
@@ -136,7 +155,7 @@ class InMemoryFS(Operations):
                 'st_atime': time.time(),
                 'st_mtime': time.time(),
                 'st_ctime': time.time(),
-                'st_mode': 0o0040777,
+                'st_mode': 0o0040770,
                 'st_nlink': 0,
                 'st_size': 0,
                 'st_gid': os.getuid(),
@@ -168,6 +187,7 @@ class InMemoryFS(Operations):
         del self.fs[the_dir][the_file]
         del self.meta[full_path]
 
+
         return 0
 
 
@@ -194,19 +214,27 @@ class InMemoryFS(Operations):
         if not the_dir_new in self.fs.keys():
             raise FuseOSError(errno.ENOENT)
 
-        if not the_file_old in self.fs[the_dir_old].keys():
-            raise FuseOSError(errno.ENOENT)
+        if full_path_old in self.fs.keys():
+            # we are moving a directory
+            if full_path_new in self.fs.keys():
+                raise FuseOSError(errno.ENOENT)
 
-        if the_file_new in self.fs[the_dir_new].keys():
-            raise FuseOSError(errno.EEXIST)
+            self.fs[full_path_new] = copy.deepcopy(self.fs[full_path_old])
+            self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
+            del self.fs[full_path_old]
+            del self.meta[full_path_old]
+        else:
+            # we are moving a file
+            if not the_file_old in self.fs[the_dir_old].keys():
+                raise FuseOSError(errno.ENOENT)
 
-        self.fs[the_dir_new][the_file_new] = copy.deepcopy(self.fs[the_dir_old][the_file_old])
-        del self.fs[the_dir_old][the_file_old]
-        del self.fs[the_dir_old]
+            if the_file_new in self.fs[the_dir_new].keys():
+                raise FuseOSError(errno.EEXIST)
 
-        self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
-        del self.meta[full_path_old]
-
+            self.fs[the_dir_new][the_file_new] = copy.deepcopy(self.fs[the_dir_old][the_file_old])
+            self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
+            del self.fs[the_dir_old][the_file_old]
+            del self.meta[full_path_old]
 
     def link(self, target, name):
         print("[*] link")
@@ -261,7 +289,7 @@ class InMemoryFS(Operations):
                 'st_atime': time.time(),
                 'st_mtime': time.time(),
                 'st_ctime': time.time(),
-                'st_mode': 0o0100777,
+                'st_mode': 0o0100770,
                 'st_nlink': 0,
                 'st_size': 0,
                 'st_gid': os.getuid(),
