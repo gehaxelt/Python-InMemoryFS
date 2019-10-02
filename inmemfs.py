@@ -137,6 +137,18 @@ class InMemoryFS(Operations):
             del self.fs[full_path]
             del self.meta[full_path]
 
+        self._recursive_rmdir(full_path)
+
+
+    def _recursive_rmdir(self, full_path):
+        for f in self.fs.keys():
+            if f.startswith(full_path):
+                del self.fs[f]
+
+        for f in self.meta.keys():
+            if f.startswith(full_path):
+                del self.meta[f]
+
     def mkdir(self, path, mode):
         full_path = self._full_path(path)
         the_dir = self._the_dir(full_path)
@@ -223,6 +235,17 @@ class InMemoryFS(Operations):
             self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
             del self.fs[full_path_old]
             del self.meta[full_path_old]
+
+            for f in self.fs.keys():
+                if f.startswith(full_path_old):
+                    self.fs[f.replace(full_path_old, full_path_new)] = copy.deepcopy(self.fs[f])
+                    del self.fs[f]
+
+            for f in self.meta.keys():
+                if f.startswith(full_path_old):
+                    self.meta[f.replace(full_path_old, full_path_new)] = copy.deepcopy(self.meta[f])
+                    del self.meta[f]
+
         else:
             # we are moving a file
             if not the_file_old in self.fs[the_dir_old].keys():
@@ -235,6 +258,8 @@ class InMemoryFS(Operations):
             self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
             del self.fs[the_dir_old][the_file_old]
             del self.meta[full_path_old]
+
+        self._debug()
 
     def link(self, target, name):
         print("[*] link")
