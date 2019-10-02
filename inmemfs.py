@@ -56,6 +56,10 @@ class InMemoryFS(Operations):
     def _the_file(self, f_path):
         return f_path.split("/")[-1]
 
+    def _debug():
+        print(self.fs)
+        print(self.meta)
+
     # Filesystem methods
     # ==================
 
@@ -139,8 +143,6 @@ class InMemoryFS(Operations):
                 'st_uid': os.getgid(),
                 }
 
-        print(self.fs, self.meta)
-
     def statfs(self, path):
         print("[*] statfs")
         # full_path = self._full_path(path)
@@ -164,6 +166,8 @@ class InMemoryFS(Operations):
             raise FuseOSError(38)
 
         del self.fs[the_dir][the_file]
+
+        return 0
 
 
     def symlink(self, name, target):
@@ -202,8 +206,6 @@ class InMemoryFS(Operations):
         self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
         del self.meta[full_path_old]
 
-        print(self.fs)
-        print(self.meta)
 
     def link(self, target, name):
         print("[*] link")
@@ -264,7 +266,6 @@ class InMemoryFS(Operations):
                 'st_gid': os.getuid(),
                 'st_uid': os.getgid(),
                 }
-        print(self.fs)
         return 1337 # we don't use file handles, so any random number should suffice, I guess?
 
 
@@ -295,7 +296,6 @@ class InMemoryFS(Operations):
             raise FuseOSError(38)
 
         self.fs[the_dir][the_file][offset:] += bytes(buf)
-        print(self.fs)
         return len(buf)
 
     def truncate(self, path, length, fh=None):
