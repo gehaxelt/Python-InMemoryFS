@@ -168,6 +168,7 @@ class InMemoryFS(Operations):
         del self.fs[the_dir][the_file]
         del self.meta[full_path]
 
+
         return 0
 
 
@@ -194,19 +195,27 @@ class InMemoryFS(Operations):
         if not the_dir_new in self.fs.keys():
             raise FuseOSError(errno.ENOENT)
 
-        if not the_file_old in self.fs[the_dir_old].keys():
-            raise FuseOSError(errno.ENOENT)
+        if full_path_old in self.fs.keys():
+            # we are moving a directory
+            if full_path_new in self.fs.keys():
+                raise FuseOSError(errno.ENOENT)
 
-        if the_file_new in self.fs[the_dir_new].keys():
-            raise FuseOSError(errno.EEXIST)
+            self.fs[full_path_new] = copy.deepcopy(self.fs[full_path_old])
+            self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
+            del self.fs[full_path_old]
+            del self.meta[full_path_old]
+        else:
+            # we are moving a file
+            if not the_file_old in self.fs[the_dir_old].keys():
+                raise FuseOSError(errno.ENOENT)
 
+            if the_file_new in self.fs[the_dir_new].keys():
+                raise FuseOSError(errno.EEXIST)
 
-        self.fs[the_dir_new][the_file_new] = copy.deepcopy(self.fs[the_dir_old][the_file_old])
-        del self.fs[the_dir_old][the_file_old]
-
-        self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
-        del self.meta[full_path_old]
-
+            self.fs[the_dir_new][the_file_new] = copy.deepcopy(self.fs[the_dir_old][the_file_old])
+            self.meta[full_path_new] = copy.deepcopy(self.meta[full_path_old])
+            del self.fs[the_dir_old][the_file_old]
+            del self.meta[full_path_old]
 
     def link(self, target, name):
         print("[*] link")
