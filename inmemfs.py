@@ -56,7 +56,7 @@ class InMemoryFS(Operations):
     def _the_file(self, f_path):
         return f_path.split("/")[-1]
 
-    def _debug():
+    def _debug(self):
         print(self.fs)
         print(self.meta)
 
