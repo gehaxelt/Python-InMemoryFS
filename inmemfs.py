@@ -84,7 +84,13 @@ class InMemoryFS(Operations):
             raise FuseOSError(errno.ENOENT)
 
         if the_dir in self.fs and the_file in self.fs[the_dir]:
+            # it's a file, update it's size
             self.meta[full_path]['st_size'] = len(self.fs[the_dir][the_file])
+
+        if full_path in self.fs.keys():
+            # it's a directory, update it's size
+            self.meta[full_path]['st_size'] = sum([len(self.fs[full_path][k]) for k in self.fs[full_path].keys()])
+
         return self.meta[full_path]
 
     def readdir(self, path, fh):
