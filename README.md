@@ -19,7 +19,6 @@ pip install fusepy
 
 BUGS/TODO:
 
-- Files disappear when moving or being created in nested folders
 - Permissions
 - Better data structures
 
