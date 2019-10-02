@@ -137,6 +137,18 @@ class InMemoryFS(Operations):
             del self.fs[full_path]
             del self.meta[full_path]
 
+        self._recursive_rmdir(full_path)
+
+
+    def _recursive_rmdir(self, full_path):
+        for f in self.fs.keys():
+            if f.startswith(full_path):
+                del self.fs[f]
+
+        for f in self.meta.keys():
+            if f.startswith(full_path):
+                del self.meta[f]
+
     def mkdir(self, path, mode):
         full_path = self._full_path(path)
         the_dir = self._the_dir(full_path)
