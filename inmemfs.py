@@ -166,6 +166,7 @@ class InMemoryFS(Operations):
             raise FuseOSError(38)
 
         del self.fs[the_dir][the_file]
+        del self.meta[full_path]
 
         return 0
 
